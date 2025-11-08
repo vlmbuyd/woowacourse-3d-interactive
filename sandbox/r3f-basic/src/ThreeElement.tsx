@@ -1,0 +1,39 @@
+import { useThree, useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
+import * as THREE from 'three';
+import { useControls } from 'leva';
+
+export default function ThreeElement() {
+  const { size, gl, scene, camera } = useThree();
+  const boxRef = useRef<THREE.Mesh>(null);
+
+  const box = useControls({
+    rotation: { value: 0, min: -360, max: 360, step: 1 },
+  });
+
+  useFrame((state, delta) => {
+    // console.log('state', state);
+    // console.log('delta', delta);
+    // console.log('boxRef', boxRef);
+    // boxRef.current.rotation.x += delta;
+    // boxRef.current.position.y -= 0.01;
+    // boxRef.current.scale.z += 0.01;
+  });
+
+  return (
+    <>
+      <directionalLight position={[5, 5, 5]} />
+      <mesh
+        ref={boxRef}
+        rotation={[
+          THREE.MathUtils.degToRad(0),
+          THREE.MathUtils.degToRad(box.rotation),
+          0,
+        ]}
+      >
+        <boxGeometry />
+        <meshStandardMaterial color="red" />
+      </mesh>
+    </>
+  );
+}
