@@ -39,7 +39,10 @@ export default function ScrollSnapper({
 
       const maxScrollTop = data.el.scrollHeight - data.el.clientHeight; // 실제 스크롤 할 수 있는 픽셀 총 범위
       const targetOffset = targetScroll / totalItems; // 목표 지점이 몇 %에 위치하는지 계산
-      const targetScrollTop = maxScrollTop * targetOffset;
+
+      let targetScrollTop = maxScrollTop * targetOffset;
+
+      if (isInfinite && targetScrollTop === 0) targetScrollTop = 1;
 
       // 스크롤 스냅 (1px 이상 차이날 때만 적용)
       if (Math.abs(data.el.scrollTop - targetScrollTop) >= 1) {
