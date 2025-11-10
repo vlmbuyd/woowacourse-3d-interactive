@@ -4,13 +4,25 @@ import { useScroll, useTexture } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { items } from '../assets/imgUrl';
 
-export default function Items({ totalItems }: { totalItems: number }) {
+export default function Items({
+  totalItems,
+  isInfinite,
+}: {
+  totalItems: number;
+  isInfinite: boolean;
+}) {
   const textures = useTexture(items.map((item) => item.url));
 
   return (
     <>
       {textures.map((texture, idx) => (
-        <Item key={idx} index={idx} texture={texture} totalItems={totalItems} />
+        <Item
+          key={idx}
+          index={idx}
+          texture={texture}
+          totalItems={totalItems}
+          isInfinite={isInfinite}
+        />
       ))}
     </>
   );
@@ -20,9 +32,10 @@ type ItemProps = {
   index: number;
   texture: THREE.Texture;
   totalItems: number;
+  isInfinite: boolean;
 };
 
-export function Item({ index, texture, totalItems }: ItemProps) {
+export function Item({ index, texture, totalItems, isInfinite }: ItemProps) {
   const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.MeshBasicMaterial>(null);
 
@@ -30,39 +43,50 @@ export function Item({ index, texture, totalItems }: ItemProps) {
   const data = useScroll();
 
   const halfItems = totalItems / 2;
+  let initialDistance = index - 0; // index - scrollProgress(초기값 0)
 
-  let initialDistance = index - 0;
-
-  if (initialDistance > halfItems)
+  // 무한스크롤일 때, 초기 위치값을 첫 번째(0번)를 기준으로 최단 거리에 원형으로 배치
+  if (isInfinite && initialDistance > halfItems) {
     initialDistance = initialDistance - totalItems;
-  else if (initialDistance < -halfItems)
-    initialDistance = initialDistance + totalItems;
+  }
 
   const initialY = -initialDistance * viewportHeight; // 첫 렌더링 시 위치 (튕김 현상 방지)
 
   useFrame((_, delta) => {
     if (!groupRef.current || !materialRef.current) return;
 
-    // 초기 스크롤 위치를 1px만큼 내려서 offset가 0에서 아주 살짝 벗어나도록 만듦 (e.g. offset: 0.000...1)
-    // 첫 이미지에서 이전 페이지(마지막 이미지)로 스크롤 가능
-    if (data.el.scrollTop === 0) {
-      data.el.scrollTop = 1;
-    }
+    let distance;
+    let scrollProgress;
 
-    // 현재 스크롤 진행률
-    const currentScroll = data.offset * totalItems;
-    const scrollProgress = currentScroll % totalItems;
+    if (isInfinite) {
+      // 초기 스크롤 위치를 1px만큼 내려서 offset가 0에서 아주 살짝 벗어나도록 만듦 (e.g. offset: 0.000...1)
+      // 첫 이미지에서 이전 페이지(마지막 이미지)로 스크롤 가능
+      if (data.el.scrollTop === 0) {
+        data.el.scrollTop = 1;
+      }
 
-    // distance: '나'의 인덱스와 '현재 스크롤 페이지'의 차이
-    // 0: 내가 중앙에 있음
-    // 양수: 나는 다음 페이지
-    // 음수: 나는 이전 페이지
-    let distance = index - scrollProgress;
+      // 현재 스크롤 진행률
+      const currentScroll = data.offset * totalItems;
+      scrollProgress = currentScroll % totalItems;
 
-    if (distance > halfItems) {
-      distance = distance - totalItems;
-    } else if (distance < -halfItems) {
-      distance = distance + totalItems;
+      // distance: '내 위치'와 '현재 스크롤 페이지'의 차이
+      // 0: 내가 중앙에 있음
+      // 양수: 나는 다음 페이지 이후에 존재
+      // 음수: 나는 이전 페이지 이전에 존재
+      distance = index - scrollProgress;
+
+      // distance를 최단 거리로 보정
+      if (distance > halfItems) {
+        distance = distance - totalItems;
+      } else if (distance < -halfItems) {
+        distance = distance + totalItems;
+      }
+
+      const absDistance = Math.abs(distance);
+      groupRef.current.visible = absDistance < 1.2;
+    } else {
+      scrollProgress = data.offset * (totalItems - 1);
+      distance = index - scrollProgress;
     }
 
     // 'damp'로 계산해준 '다음 프레임의 새 위치'로 나의 현재 위치 덮어쓰기 (이동하기)
@@ -81,9 +105,6 @@ export function Item({ index, texture, totalItems }: ItemProps) {
       4,
       delta
     );
-
-    const absDistance = Math.abs(distance);
-    groupRef.current.visible = absDistance < 1.2;
   });
 
   return (
