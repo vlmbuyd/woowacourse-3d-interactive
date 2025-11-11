@@ -15,10 +15,10 @@ function App() {
       <OrthographicCamera makeDefault zoom={1} position={[0, 0, 1]} />
       <ScrollControls
         pages={totalItems}
-        damping={0.1}
+        damping={0.2}
         infinite={isInfinite}
         enabled={totalItems > 1}
-        maxSpeed={1.5}
+        maxSpeed={1.0}
       >
         <axesHelper args={[600]} />
         <gridHelper args={[100, 100]} />

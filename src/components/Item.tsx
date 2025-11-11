@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useScroll, useTexture } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { items } from '../assets/imgUrl';
+import { type FoldMaterialType } from './FoldMaterial';
 
 export default function Items({
   totalItems,
@@ -12,7 +13,6 @@ export default function Items({
   isInfinite: boolean;
 }) {
   const textures = useTexture(items.map((item) => item.url));
-
   return (
     <>
       {textures.map((texture, idx) => (
@@ -37,7 +37,7 @@ type ItemProps = {
 
 export function Item({ index, texture, totalItems, isInfinite }: ItemProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const materialRef = useRef<FoldMaterialType>(null);
 
   const { height: viewportHeight } = useThree((state) => state.viewport);
   const data = useScroll();
@@ -45,11 +45,10 @@ export function Item({ index, texture, totalItems, isInfinite }: ItemProps) {
   const halfItems = totalItems / 2;
   let initialDistance = index - 0; // index - scrollProgress(초기값 0)
 
-  // 무한스크롤일 때, 초기 위치값을 첫 번째(0번)를 기준으로 최단 거리에 원형으로 배치
+  //   // 무한스크롤일 때, 초기 위치값을 첫 번째(0번)를 기준으로 최단 거리에 원형으로 배치
   if (isInfinite && initialDistance > halfItems) {
     initialDistance = initialDistance - totalItems;
   }
-
   const initialY = -initialDistance * viewportHeight; // 첫 렌더링 시 위치 (튕김 현상 방지)
 
   useFrame((_, delta) => {
@@ -59,9 +58,6 @@ export function Item({ index, texture, totalItems, isInfinite }: ItemProps) {
     let scrollProgress;
 
     if (isInfinite) {
-      // 초기 스크롤 위치를 1px만큼 내려서 offset가 0에서 아주 살짝 벗어나도록 만듦 (e.g. offset: 0.000...1)
-      // 첫 이미지에서 이전 페이지(마지막 이미지)로 스크롤 가능
-
       // 현재 스크롤 진행률
       const currentScroll = data.offset * totalItems;
       scrollProgress = currentScroll % totalItems;
@@ -73,14 +69,11 @@ export function Item({ index, texture, totalItems, isInfinite }: ItemProps) {
       distance = index - scrollProgress;
 
       // distance를 최단 거리로 보정
-      if (distance > halfItems) {
-        distance = distance - totalItems;
-      } else if (distance < -halfItems) {
-        distance = distance + totalItems;
-      }
+      if (distance > halfItems) distance = distance - totalItems;
+      if (distance < -halfItems) distance = distance + totalItems;
 
       const absDistance = Math.abs(distance);
-      groupRef.current.visible = absDistance < 1.2;
+      groupRef.current.visible = absDistance < 1.5;
     } else {
       scrollProgress = data.offset * (totalItems - 1);
       distance = index - scrollProgress;
@@ -89,29 +82,35 @@ export function Item({ index, texture, totalItems, isInfinite }: ItemProps) {
     const positionDamp = 6; // Y축 이동 댐핑 강도
     const rotationDamp = 4; // Z축 회전 댐핑 강도
 
-    // 'damp'로 계산해준 '다음 프레임의 새 위치'로 나의 현재 위치 덮어쓰기 (이동하기)
     groupRef.current.position.y = THREE.MathUtils.damp(
-      groupRef.current.position.y, // 현재 위치를 바탕으로
-      -distance * viewportHeight, // 목표 위치를 계산하고
-      positionDamp, // 속도
-      delta // 이동 시간
+      groupRef.current.position.y,
+      -distance * viewportHeight,
+      positionDamp,
+      delta
     );
 
-    // distance에 비례하여 z축 회전
-    const targetRotationZ = -distance * THREE.MathUtils.degToRad(30);
+    const targetRotationZ = -distance * THREE.MathUtils.degToRad(40);
     groupRef.current.rotation.z = THREE.MathUtils.damp(
       groupRef.current.rotation.z,
       targetRotationZ,
       rotationDamp,
       delta
     );
+
+    materialRef.current.uDistance = distance;
   });
 
   return (
     <group ref={groupRef} position={[0, initialY, 0]}>
-      <mesh scale={[520, 520, 1]}>
-        <planeGeometry />
-        <meshBasicMaterial ref={materialRef} map={texture} transparent />
+      <mesh rotation={[0, Math.PI, 0]} scale={[520, 520, 1]}>
+        <planeGeometry args={[1, 1, 64, 64]} />
+
+        <foldMaterial
+          ref={materialRef}
+          uTexture={texture}
+          side={THREE.DoubleSide}
+          transparent={false}
+        />
       </mesh>
     </group>
   );
