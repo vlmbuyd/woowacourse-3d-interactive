@@ -12,7 +12,13 @@ function App() {
 
   return (
     <Canvas>
-      <OrthographicCamera makeDefault zoom={1} position={[0, 0, 1]} />
+      <OrthographicCamera
+        makeDefault
+        zoom={1}
+        position={[0, 0, 1]}
+        near={-400}
+      />
+
       <ScrollControls
         pages={totalItems}
         damping={0.2}
