@@ -26,9 +26,6 @@ function App() {
         enabled={totalItems > 1}
         maxSpeed={1.0}
       >
-        <axesHelper args={[600]} />
-        <gridHelper args={[100, 100]} />
-
         <Items totalItems={totalItems} isInfinite={isInfinite} />
 
         <ScrollSnapper totalItems={totalItems} isInfinite={isInfinite} />
