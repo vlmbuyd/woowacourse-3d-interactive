@@ -42,6 +42,8 @@ export default function ScrollSnapper({
 
       let targetScrollTop = maxScrollTop * targetOffset;
 
+      // 초기 스크롤 위치를 1px만큼 내려서 offset가 0에서 아주 살짝 벗어나도록 만듦 (e.g. offset: 0.000...1)
+      // 첫 이미지에서 이전 페이지(마지막 이미지)로 스크롤 가능
       if (isInfinite && targetScrollTop === 0) targetScrollTop = 1;
 
       // 스크롤 스냅 (1px 이상 차이날 때만 적용)
